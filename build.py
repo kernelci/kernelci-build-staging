@@ -173,8 +173,6 @@ for o, a in opts:
         silent = not silent
     if o == '-e':
         print "Reading build variables from environment"
-        api = os.environ['API']
-        token = os.environ['TOKEN']
         publish = True
         use_environment = True
 
@@ -226,6 +224,8 @@ else:
 
 # Gather info from environment variables
 if use_environment:
+    api = os.environ.get('API', api)
+    token = os.environ.get('TOKEN', token)
     if os.environ.has_key('GIT_DESCRIBE'):
         git_describe = os.environ['GIT_DESCRIBE']
     if os.environ.has_key('GIT_DESCRIBE_VERBOSE'):
