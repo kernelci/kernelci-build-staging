@@ -142,7 +142,7 @@ api = None
 token = None
 job = None
 boot_cmd = None
-use_git = False
+use_git = True
 use_environment = False
 
 # temp frag file: used to collect all kconfig fragments
@@ -208,6 +208,7 @@ for o, a in opts:
         print "Reading build variables from environment"
         publish = True
         use_environment = True
+        use_git = False
 
 # Default umask for file creation
 os.umask(022)
