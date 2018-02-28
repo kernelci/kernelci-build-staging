@@ -80,6 +80,7 @@ if [ ${ARCH} = "arm64" ]; then
 fi
 
 if [ ${ARCH} = "x86" ]; then
+  DEFCONFIG_LIST+="$base_defconfig "
   DEFCONFIG_LIST+="allmodconfig "
 
   # Fragments
