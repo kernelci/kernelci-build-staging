@@ -1,0 +1,53 @@
+{{- $architecture := or .architecture "amd64" -}}
+{{- $basename := or .basename "stretch" -}}
+
+architecture: {{ $architecture }}
+
+actions:
+  - action: debootstrap
+    suite: stretch
+    components:
+      - main
+    mirror: http://deb.debian.org/debian
+    variant: minbase
+
+  - action: apt
+    packages:
+      - sudo
+      - initramfs-tools
+      - systemd-sysv
+      - python
+      - wget
+
+  - action: run
+    description: Set hostname
+    chroot: true
+    command: echo debian > /etc/hostname
+
+  - action: run
+    description: Remove root password
+    chroot: true
+    command: passwd root -d
+
+  - action: run
+    description: Clean apt cache
+    chroot: true
+    command: apt-get clean
+
+  - action: run
+    description: Create a initramfs
+    chroot: true
+    command: mkinitramfs -o /boot/initramfs nokernel
+
+  - action: run
+    chroot: true
+    script: scripts/setup-networking.sh
+
+  - action: pack
+    compression: gz
+    file: {{ $basename -}}-nfsroot.tar.gz
+
+  - action: run
+    description: Retrieve initramfs
+    postprocess: true
+    command: tar -O -xvz  -f {{- $basename -}}-nfsroot.tar.gz ./boot/initramfs  > {{- $basename -}}-initramfs.gz
