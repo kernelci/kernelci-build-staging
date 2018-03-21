@@ -1,0 +1,59 @@
+pipeline {
+  options { timestamps() }
+  agent { dockerfile { dir 'jenkins/igt/' } }
+
+  stages {
+    stage("Setup") {
+      steps {
+        script {
+          env.PIPELINE_VERSION = VersionNumber(
+             versionNumberString: '${BUILD_DATE_FORMATTED,"yyyyMMdd"}.${BUILDS_TODAY_Z}')
+        }
+      }
+    }
+
+    stage("Build libdrm") {
+      steps {
+        dir("${PIPELINE_VERSION}") {
+          dir("libdrm") {
+            git url: 'git://anongit.freedesktop.org/mesa/drm'
+            sh 'PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig/ sh autogen.sh --host=arm-linux-gnueabihf --enable-intel --prefix=$(pwd)/../libdrm-build/'
+            sh 'make -j$(nproc) V=1'
+            sh 'make -j$(nproc) install V=1'
+            sh 'tar cvfz ../libdrm-build.tar.gz ../libdrm-build/'
+          }
+        }
+      }
+    }
+
+    stage("Build igt-gpu-tools") {
+      steps {
+        dir("${PIPELINE_VERSION}") {
+          dir("igt-gpu-tools") {
+            git url: 'git://anongit.freedesktop.org/drm/igt-gpu-tools'
+            sh 'PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig/:$(pwd)/../libdrm-build/lib/pkgconfig sh autogen.sh --host=arm-linux-gnueabihf'
+            sh 'make -j$(nproc) V=1'
+            sh 'tar cvfz ../igt-build.tar.gz tests/core_auth tests/core_get_client_auth tests/core_getclient tests/core_getstats tests/core_getversion tests/core_prop_blob tests/core_setmaster_vs_auth tests/drm_read tests/kms_addfb_basic tests/kms_atomic tests/kms_flip_event_leak tests/kms_setmode tests/kms_vblank tests/kms_frontbuffer_tracking tests/kms_flip tests/testdisplay'
+          }
+        }
+      }
+    }
+
+    stage ("Upload tarballs") {
+      environment {
+        API = 'https://staging-api.kernelci.org'
+        PUBLISH_PATH = 'images/igt-gpu-tools/${PIPELINE_VERSION}'
+      }
+      steps {
+        sh 'python push-source.py --token ${API_TOKEN} --api ${API} --publish_path ${PUBLISH_PATH}/armel --file ${PIPELINE_VERSION}/igt-build.tar.gz ${PIPELINE_VERSION}/libdrm-build.tar.gz'
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'rm -rf ${PIPELINE_VERSION}'
+    }
+  }
+}
+
