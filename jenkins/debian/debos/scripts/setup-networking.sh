@@ -10,4 +10,3 @@ systemctl enable systemd-resolved
 systemctl enable systemd-timesyncd
 
 ln -sf /lib/systemd/resolv.conf /etc/resolv.conf
-

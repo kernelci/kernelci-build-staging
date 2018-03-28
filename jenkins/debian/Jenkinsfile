@@ -1,0 +1,81 @@
+pipeline {
+  options { timestamps() }
+  agent {
+    dockerfile {
+      label 'docker-slave'
+      args '--device=/dev/kvm'
+      dir 'jenkins/debian/'
+      additionalBuildArgs '--pull'
+    }
+  }
+
+  stages {
+    stage("Setup") {
+      steps {
+        script {
+          env.PIPELINE_VERSION = VersionNumber(
+             versionNumberString: '${BUILD_DATE_FORMATTED,"yyyyMMdd"}.${BUILDS_TODAY_Z}')
+        }
+        sh 'mkdir ${PIPELINE_VERSION}'
+      }
+    }
+
+    stage("Build NFS images") {
+      parallel {
+
+        stage("Build NFS image for arm64") {
+          steps {
+              sh 'mkdir ${PIPELINE_VERSION}/arm64'
+              sh 'debos -t architecture:arm64 -t basename:${PIPELINE_VERSION}/arm64/ jenkins/debian/debos/stretch.yaml'
+          }
+        }
+
+        stage("Build NFS image for armel") {
+          steps {
+              sh 'mkdir ${PIPELINE_VERSION}/armel'
+              sh 'debos -t architecture:armhf -t basename:${PIPELINE_VERSION}/armel/ jenkins/debian/debos/stretch.yaml'
+          }
+        }
+
+        stage("Build NFS image for x86") {
+          steps {
+              sh 'mkdir ${PIPELINE_VERSION}/x86'
+              sh 'debos -t architecture:i386 -t basename:${PIPELINE_VERSION}/x86/ jenkins/debian/debos/stretch.yaml'
+          }
+        }
+
+        stage("Build NFS image for x86_64") {
+          steps {
+              sh 'mkdir ${PIPELINE_VERSION}/x86_64'
+              sh 'debos -t architecture:amd64 -t basename:${PIPELINE_VERSION}/x86_64/ jenkins/debian/debos/stretch.yaml'
+          }
+        }
+      }
+    }
+/*
+    stage ("Upload images") {
+      environment {
+        API = 'https://staging-api.kernelci.org'
+        PUBLISH_PATH = 'images/rootfs/debian/${PIPELINE_VERSION}'
+      }
+      steps {
+        sh 'python push-source.py --token ${API_TOKEN} --api ${API} --publish_path ${PUBLISH_PATH}/arm64 ${PIPELINE_VERSION}/arm64/rootfs.cpio.gz'
+        sh 'python push-source.py --token ${API_TOKEN} --api ${API} --publish_path ${PUBLISH_PATH}/armel${PIPELINE_VERSION}/armel/rootfs.cpio.gz'
+        sh 'python push-source.py --token ${API_TOKEN} --api ${API} --publish_path ${PUBLISH_PATH}/x86 ${PIPELINE_VERSION}/x86/rootfs.cpio.gz'
+        sh 'python push-source.py --token ${API_TOKEN} --api ${API} --publish_path ${PUBLISH_PATH}/x86_64 ${PIPELINE_VERSION}/x86_64/rootfs.cpio.gz'
+      }
+    }
+*/
+  }
+  post {
+      success {
+          dir ("${PIPELINE_VERSION}") {
+            archiveArtifacts artifacts: 'arm64/rootfs.cpio.gz', fingerprint: true
+            archiveArtifacts artifacts: 'armel/rootfs.cpio.gz', fingerprint: true
+            archiveArtifacts artifacts: 'x86/rootfs.cpio.gz', fingerprint: true
+            archiveArtifacts artifacts: 'x86_64/rootfs.cpio.gz', fingerprint: true
+          }
+      }
+  }
+}
+
