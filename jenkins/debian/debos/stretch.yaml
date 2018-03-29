@@ -16,11 +16,9 @@ actions:
     packages:
       - udev
       - kmod
-      - sudo
-      - dbus
       - systemd-sysv
       - diffutils
-      - python
+#      - python
 
 #      - openssh-server
 #      - adduser
