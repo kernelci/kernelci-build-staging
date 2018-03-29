@@ -16,6 +16,8 @@ actions:
     packages:
       - udev
       - kmod
+      - dbus
+      - sudo
       - systemd-sysv
       - diffutils
 #      - python
