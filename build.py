@@ -393,7 +393,8 @@ if install:
         patterns = ['zImage', 'xipImage']
     elif arch == 'arm64':
         patterns = ['Image']
-    # TODO: Fix this assumption. ARCH != ARM* == x86
+    elif arch == 'mips':
+        patterns = ['vmlinux.bin']
     else:
         patterns = ['bzImage']
 
