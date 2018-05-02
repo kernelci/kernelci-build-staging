@@ -1,0 +1,28 @@
+FROM debian:stretch
+
+ARG DEBIAN_ARCH=armhf
+
+RUN dpkg --add-architecture $DEBIAN_ARCH
+RUN apt-get update
+RUN if [ "$DEBIAN_ARCH" != "i386" -a "$DEBIAN_ARCH" != "amd64" ]; then  \
+        apt-get install -y --no-install-recommends crossbuild-essential-$DEBIAN_ARCH; \
+    else                                                                \
+        apt-get install -y --no-install-recommends build-essential;     \
+    fi
+RUN apt-get install --no-install-recommends -y libpciaccess-dev:$DEBIAN_ARCH \
+                       libkmod-dev:$DEBIAN_ARCH \
+                       libprocps-dev:$DEBIAN_ARCH \
+                       libcairo2-dev:$DEBIAN_ARCH \
+                       libunwind-dev:$DEBIAN_ARCH \
+                       libudev-dev:$DEBIAN_ARCH \
+                       git \
+                       autoconf \
+                       xutils-dev \
+                       autogen \
+                       libtool \
+                       automake \
+                       intltool \
+                       python \
+                       python-requests \
+                       cpio
+

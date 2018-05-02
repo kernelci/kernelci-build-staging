@@ -1,0 +1,17 @@
+library identifier: 'jenkins-libs@master', retriever: modernSCM(
+  [$class: 'GitSCMSource',
+   remote: 'https://github.com/ana/kernelci-jenkins-libs'])
+
+buildTest {
+
+    name = 'base'
+    archList = ["arm64" , "armel", "x86", "x86_64"]
+    debosFile = "jenkins/debian/debos/stretch.yaml"
+    //These packages will be installed in the base image, they're the runtime deps of the test suite
+    //extra_packages = ""
+
+    // Do not add because we're building a base image
+    // build_test_suite = ""
+
+}
+
