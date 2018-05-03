@@ -1,0 +1,36 @@
+library identifier: 'jenkins-libs@master', retriever: modernSCM(
+  [$class: 'GitSCMSource',
+   remote: 'https://github.com/ana/kernelci-jenkins-libs'])
+
+buildTest {
+
+    name = 'v4l2'
+    archList = ["arm64", "armel", "x86_64"] //TODO: x64 doesn't work because v4l2 FTBFS
+    debosFile = "jenkins/debian/debos/stretch.yaml"
+    //These packages will be installed in the base image, they're the runtime deps of the test suite
+    extra_packages = "libpciaccess0 libkmod2 libprocps6 libcairo2 libunwind8"
+
+    // This script must build the test suite.
+    // The available environment variables are: ${PIPELINE_VERSION}, ${ARCH}, ${TOOLCHAIN_ARCH}, ${NAME}
+    // The script must produce a tarball with the built test suite named rootfs-built-${NAME}-${ARCH}.cpio.gz
+    build_test_suite = '''
+mkdir -p ${WORKSPACE}/${PIPELINE_VERSION}/${ARCH}/v4l2-compliance
+cd ${WORKSPACE}/${PIPELINE_VERSION}/${ARCH}/v4l2-compliance
+
+git clone git://linuxtv.org/v4l-utils.git .
+sh bootstrap.sh
+mkdir install
+PKG_CONFIG_PATH=/usr/lib/${TOOLCHAIN_ARCH}/pkgconfig/ ./configure --host=${TOOLCHAIN_ARCH} --prefix=\$(pwd)/install --with-udevdir=\$(pwd)/install/lib/udev
+make -j\$(nproc) V=1
+make V=1 install
+find install
+mkdir -p usr/bin usr/lib usr/lib/libv4l
+cp install/bin/* install/sbin/* usr/bin/.
+cp -rf install/lib/*.so* usr/lib/.
+cp -rf install/lib/libv4l/*.so* usr/lib/libv4l/.
+${TOOLCHAIN_ARCH}-strip usr/bin/* usr/lib/*.so* usr/lib/libv4l/*.so*
+
+find -H usr | cpio -H newc -v -o | gzip -c - > ../rootfs-built-$NAME-${ARCH}.cpio.gz
+'''
+
+}

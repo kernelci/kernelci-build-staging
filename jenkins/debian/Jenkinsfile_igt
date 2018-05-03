@@ -1,0 +1,47 @@
+library identifier: 'jenkins-libs@master', retriever: modernSCM(
+  [$class: 'GitSCMSource',
+   remote: 'https://github.com/ana/kernelci-jenkins-libs'])
+
+buildTest {
+
+    name = 'igt'
+    archList = ["arm64", "armel", "x86_64"] // TODO: "x86" doesn't work because libdrm FTBFS
+    debosFile = "jenkins/debian/debos/stretch.yaml"
+    //These packages will be installed in the base image, they're the runtime deps of the test suite
+    extra_packages = "libpciaccess0 libkmod2 libprocps6 libcairo2 libunwind8 libudev1 libglib2.0-0"
+
+    // This script must build the test suite.
+    // The available environment variables are: ${PIPELINE_VERSION}, ${ARCH}, ${TOOLCHAIN_ARCH}, ${NAME}
+    // The script must produce a tarball with the built test suite named rootfs-built-${NAME}-${ARCH}.cpio.gz
+    build_test_suite = '''
+# Build DRM
+mkdir -p ${WORKSPACE}/${PIPELINE_VERSION}/${ARCH}/libdrm
+cd ${WORKSPACE}/${PIPELINE_VERSION}/${ARCH}/libdrm/
+
+git clone git://anongit.freedesktop.org/mesa/drm .
+mkdir -p usr # Build to usr so it's in the right place when we add it to cpio
+PKG_CONFIG_PATH=/usr/lib/${TOOLCHAIN_ARCH}/pkgconfig/ sh autogen.sh --host=${TOOLCHAIN_ARCH} --enable-intel --prefix=\$(pwd)/usr/
+make -j\$(nproc) V=1
+make -j\$(nproc) install V=1
+
+ls usr/lib/lib*.so* | cpio -H newc -v -o  > ../rootfs-built-$NAME-${ARCH}.cpio
+
+
+# Build IGT GPU Tools
+mkdir -p ${WORKSPACE}/${PIPELINE_VERSION}/${ARCH}/igt-gpu-tools
+cd ${WORKSPACE}/${PIPELINE_VERSION}/${ARCH}/igt-gpu-tools
+
+git clone git://anongit.freedesktop.org/drm/igt-gpu-tools .
+PKG_CONFIG_PATH=/usr/lib/${TOOLCHAIN_ARCH}/pkgconfig/:\$(pwd)/../libdrm/usr/lib/pkgconfig sh autogen.sh --host=${TOOLCHAIN_ARCH}
+make -j\$(nproc) V=1
+mkdir -p usr/bin
+cp tests/core_auth tests/core_get_client_auth tests/core_getclient tests/core_getstats tests/core_getversion tests/core_prop_blob tests/core_setmaster_vs_auth tests/drm_read tests/kms_addfb_basic tests/kms_atomic tests/kms_flip_event_leak tests/kms_setmode tests/kms_vblank tests/kms_frontbuffer_tracking tests/kms_flip usr/bin/.
+${TOOLCHAIN_ARCH}-strip usr/bin/*
+
+find -H usr | cpio --format=newc --verbose --create --append --file=../rootfs-built-$NAME-${ARCH}.cpio
+cd ${WORKSPACE}/${PIPELINE_VERSION}/${ARCH}
+gzip rootfs-built-$NAME-${ARCH}.cpio
+'''
+
+}
+
