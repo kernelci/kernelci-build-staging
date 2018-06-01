@@ -4,7 +4,7 @@ library identifier: 'kernelci-build-staging@master', retriever: modernSCM(
 
 buildImage {
 
-    name = 'squeezetests'
+    name = 'stretchtests'
     archList = ["armhf", "armel", "arm64", "x86", "x86_64"]
 
 
@@ -12,5 +12,5 @@ buildImage {
     extra_packages = "libpciaccess0 libkmod2 libprocps6 libcairo2 libunwind8 libudev1 libglib2.0-0"
 
     // script to build the testsuite(s)
-    script = "scripts/squeezetests.sh"
+    script = "scripts/stretchtests.sh"
 }
