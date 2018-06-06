@@ -92,9 +92,9 @@ def makeImageStep(String pipeline_version, String arch, String debian_arch, Stri
                 }
 
                 stage("Upload images for ${arch}") {
-                    withCredentials([string(credentialsId: 'Staging KernelCI API Token', variable: 'API_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'KernelCI Upload API Token', variable: 'API_TOKEN')]) {
                         sh """
-                            python push-source.py --token ${API_TOKEN} --api https://staging-api.kernelci.org \
+                            python push-source.py --token ${API_TOKEN} --api https://api.kernelci.org \
                                 --publish_path images/rootfs/debian/${name}/ \
                                 --file ${pipeline_version}/${arch}/*.*
                         """
