@@ -108,7 +108,7 @@ node("shared-builder") {
     }
 
     stage("Build") {
-        lock("${env.NODE_NAME}-build-lock") {
+        lock(label: "${env.NODE_NAME}-build-lock", quantity: 1) {
             timeout(time: 60, unit: 'MINUTES') {
                 buildConfig(params.DEFCONFIG, kdir, kci_build)
             }
