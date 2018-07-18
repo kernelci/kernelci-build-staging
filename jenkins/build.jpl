@@ -56,7 +56,7 @@ KCI_BUILD_BRANCH (master)
  */
 
 
-@Library('kernelci-gtucker') _
+@Library('kernelci') _
 import org.kernelci.build.Kernel
 import org.kernelci.util.Job
 
