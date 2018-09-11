@@ -1,0 +1,13 @@
+@Library('kernelci') _
+import org.kernelci.debian.rootfs
+
+
+def k = new rootfs()
+
+def config = ['name':"stretch",
+              'arch_list':["armhf", "armel", "arm64", "i386", "amd64", "mips", "mipsel", "mips64el"],
+              'debian_suite':"stretch",
+              'extra_packages':"",
+              'script':""]
+
+k.buildImage (config)

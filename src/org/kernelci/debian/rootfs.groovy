@@ -32,25 +32,16 @@ KCI_TOKEN_ID
 - Harcoded paths at jenkins/debian/... for Dockerfile and debos file
 */
 
-def call(Closure context) {
+package org.kernelci.debian
 
-    def config = [:]
-    context.resolveStrategy = Closure.DELEGATE_FIRST
-    context.delegate = config
-    context()
+
+def buildImage(config) {
 
     def name = config.name
-    def kernel_arch = config.archList
-    def debian_arch =  ["armhf": "armhf",
-                        "armel": "armel",
-                        "arm64": "arm64",
-                        "x86": "i386",
-                        "x86_64": "amd64",
-                        "mips": "mips",
-                        "mipsel": "mipsel",
-                        "mips64el": "mips64el"]
+    def archList = config.arch_list
+    def debianSuite = config.debian_suite
 
-    def debosFile = "jenkins/debian/debos/stretch.yaml"
+    def debosFile = "jenkins/debian/debos/rootfs.yaml"
     // Returns the pipeline version with the format YYYYMMMAA.X where X is the number of the build of the day
     def pipeline_version = VersionNumber(versionNumberString: '${BUILD_DATE_FORMATTED,"yyyyMMdd"}.${BUILDS_TODAY_Z}')
 
@@ -67,12 +58,12 @@ def call(Closure context) {
     }
 
     def stepsForParallel = [:]
-    for (int i = 0; i < kernel_arch.size(); i++) {
-        def arch = kernel_arch[i]
+    for (int i = 0; i < archList.size(); i++) {
+        def arch = archList[i]
         def buildStep = "Build image for ${arch}"
         stepsForParallel[buildStep] = makeImageStep(pipeline_version,
                                                     arch,
-                                                    debian_arch[arch],
+                                                    debianSuite,
                                                     debosFile,
                                                     extraPackages,
                                                     name,
@@ -83,7 +74,7 @@ def call(Closure context) {
 }
 
 
-def makeImageStep(String pipeline_version, String arch, String debian_arch, String debosFile, String extraPackages, String name, String script) {
+def makeImageStep(String pipeline_version, String arch, String debianSuite, String debosFile, String extraPackages, String name, String script) {
     return {
         node('builder' && 'docker') {
             stage("Checkout") {
@@ -94,7 +85,7 @@ def makeImageStep(String pipeline_version, String arch, String debian_arch, Stri
                 stage("Build base image for ${arch}") {
                     sh """
                         mkdir -p ${pipeline_version}/${arch}
-                        debos -t architecture:${debian_arch} -t basename:${pipeline_version}/${arch} -t extra_packages:'${extraPackages}' -t script:${script} ${debosFile}
+                        debos -t architecture:${arch} -t suite:${debianSuite} -t basename:${pipeline_version}/${arch} -t extra_packages:'${extraPackages}' -t script:${script} ${debosFile}
                     """
                 archiveArtifacts artifacts: "${pipeline_version}/${arch}/initrd.cpio.gz", fingerprint: true
                 archiveArtifacts artifacts: "${pipeline_version}/${arch}/rootfs.cpio.gz", fingerprint: true
